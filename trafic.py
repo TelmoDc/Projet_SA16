@@ -6,7 +6,7 @@ def transition(routeActuelle, vmax, p_ralentis):
     routeActuelle_new = routeActuelle.copy()
     n = len(routeActuelle)
 
-    voituresDejaBougee = [0]
+    voituresDejaBougee = {0}
     for i in range(n):
         if (routeActuelle[i] not in voituresDejaBougee):
             voiture_act = routeActuelle_new[i]
@@ -31,7 +31,7 @@ def transition(routeActuelle, vmax, p_ralentis):
                     routeActuelle_new[(pos_voiture_act) % n] = 0
 
             # 3 Ajout de la voiture dans la liste de celle qui ont deja avancÃ©es
-            voituresDejaBougee.append(voiture_act)
+            voituresDejaBougee.add(voiture_act)
 
     return np.array(routeActuelle_new)
 
