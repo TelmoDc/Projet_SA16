@@ -3,7 +3,7 @@ import time
 import math
 import threading
 
-from trafic import *
+from Trafic import *
 
 
 # parametres (je les ai modifié pour une représentation visuelle)
