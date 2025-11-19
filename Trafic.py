@@ -1,5 +1,5 @@
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 # Une transition a lieux toutes les secondes.
 def transition(routeActuelle, vmax_par_voiture, p_ralentis):
@@ -92,74 +92,53 @@ for id_voiture in range(1, nb_voitures + 1):
 
 
 
-#--------simulations accidents---------------
-
-
-def detect_distance(route, pos):
-    #retourne la distance en cases jusqu'a la prochaine voiture devant
-    n = len(route)
-    for d in range(1, n):
-        if route[(pos + d) % n] != 0:
-            return d
-    return None  # route vide (cas impossible si nb_voitures > 0)
-
-
-def simulate_accident(route, vmax_par_voiture, base_prob=0.02):
-    """
-    verifie si un accident doit se produire sur la route actuelle.
-    si oui, elle retourne une route modifiée (avec accidents marqués)
-    si non, elle retourne None.
-    """
-    n = len(route)
-    vmax_max = np.max(vmax_par_voiture)
-
-    for pos in range(n):
-        idv = route[pos]
-        if idv == 0:
-            continue
-
-        vmax_i = vmax_par_voiture[idv]
-        distance = detect_distance(route, pos)
-
-        if distance is None:
-            continue
-
-        # Si la distance est < à la vitesse max → freinage violent
-        if distance < vmax_i:
-            proba = base_prob * (vmax_i / vmax_max)
-
-            if np.random.rand() < proba:
-                # ACCIDENT !
-                new_route = route.copy()
-
-                pos_front = (pos + distance) % n
-                new_route[pos] = -1
-                new_route[pos_front] = -1
-
-                return new_route   # route modifié
-
-    return None   # pas d'accident
-
-
-def transition_accidents(route, vmax_par_voiture, p_ralentis, base_prob=0.02):
-    #simule un accident eventuel, et si pas d'accifent alors applique la transition normale
-    #on teste si un accident se produit
-    accident_route = simulate_accident(route, vmax_par_voiture, base_prob)
-
-    if accident_route is not None:
-        return accident_route
-
-    #sinon on appelle la transition
-    return transition(route, vmax_par_voiture, p_ralentis)
 
 
 
-def CM_Route_accidents(route_0, temps, vmax_par_voiture, p_ralentis, base_prob=0.02):
-    chaine = [route_0]
-    for t in range(temps):
-        nxt = transition_accidents(chaine[-1], vmax_par_voiture, p_ralentis, base_prob)
-        chaine.append(nxt)
-    return np.array(chaine)
+
+
+
+
+
+# limitation de vitesse
+
+def transition_vmax_locale(routeActuelle, vmax_par_voiture, p_ralentis):
+    vmax_local = [20 for i in range(len(routeActuelle))]
+    for i in range(10,20):
+        vmax_local[i] = 5 #en considerant que la route fasse une taille supérieure a 20
+    routeActuelle_new = routeActuelle.copy()
+    n = len(routeActuelle)
+
+    voituresDejaBougee = [0]
+    for i in range(n):
+        if (routeActuelle[i] not in voituresDejaBougee and routeActuelle[i] != 0):
+            voiture_act = routeActuelle_new[i]
+            pos_voiture_act = i
+            # chaque voiture a sa vitesse max // on prend le min entre ça et vmax locale de la route
+            vmax_i = min(vmax_par_voiture[voiture_act],vmax_local[i])
+
+            # 1 avance vmax au plus
+            avance = 0
+            for j in range(vmax_i):
+                if (routeActuelle[(i + j + 1) % n] == 0):
+                    avance += 1
+                    routeActuelle_new[(i + j) % n] = 0
+                    routeActuelle_new[(i + j + 1) % n] = voiture_act
+                    pos_voiture_act = (i + j + 1) % n
+                else:
+                    break
+
+            # 2 ralatentit avec proba p_ralentis si possible
+            if avance > 0:
+                u = np.random.rand()
+                if (u < p_ralentis):
+                    routeActuelle_new[(pos_voiture_act - 1) % n] = voiture_act
+                    routeActuelle_new[(pos_voiture_act) % n] = 0
+
+            # 3 Ajout de la voiture dans la liste de celle qui ont deja avances
+            voituresDejaBougee.append(voiture_act)
+
+    return np.array(routeActuelle_new)
 
 
 
@@ -179,6 +158,41 @@ if __name__ == "__main__":
         else: vmax_par_voiture[idv] = 5
 
     # simulateur avec accidents
-    traj = CM_Route_accidents(route, 50, vmax_par_voiture, p_ralentis=0.2, base_prob=0.03)
+    #print(traj)
 
-    print(traj)
+    traj = [route]
+
+    for t in range(100):
+        route = transition_vmax_locale(route, vmax_par_voiture, 0.3)
+        traj.append(route)
+
+    traj = np.array(traj)
+    img = (traj > 0).astype(int)  # 0 = vide, 1 = voiture
+
+    # ----- AFFICHAGE -----
+    plt.figure(figsize=(10, 6))
+    plt.imshow(img.T, aspect='auto', cmap='gray_r', origin='lower')
+    plt.xlabel("Temps")
+    plt.ylabel("Position sur la route")
+    plt.title("Évolution trafic avec limitation locale (cases 10–19)")
+    plt.show()
+
+    ##version sans lim de vitesse
+    route = route_unif(L, nb_voitures)
+
+    traj = [route]
+
+    for t in range(100):
+        route = transition(route, vmax_par_voiture, 0.3)
+        traj.append(route)
+
+    traj = np.array(traj)
+    img = (traj > 0).astype(int)  # 0 = vide, 1 = voiture
+
+    # ----- AFFICHAGE -----
+    plt.figure(figsize=(10, 6))
+    plt.imshow(img.T, aspect='auto', cmap='gray_r', origin='lower')
+    plt.xlabel("Temps")
+    plt.ylabel("Position sur la route")
+    plt.title("Évolution trafic avec limitation locale (cases 10–19)")
+    plt.show()
