@@ -82,13 +82,13 @@ for id_voiture in range(1, nb_voitures + 1):
     # je fait le type de véhicule en fonction du numéro pour l'instant donc pas aléatoire
     if id_voiture % 5 == 0:
         # camion
-        vmax_par_voiture[id_voiture] = 2
+        vmax_par_voiture[id_voiture] = 5
     elif id_voiture % 3 == 0:
         # moto
-        vmax_par_voiture[id_voiture] = 7
+        vmax_par_voiture[id_voiture] = 10
     else:
         # voiture normale
-        vmax_par_voiture[id_voiture] = 5
+        vmax_par_voiture[id_voiture] = 8
 
 
 
@@ -104,8 +104,11 @@ for id_voiture in range(1, nb_voitures + 1):
 
 def transition_vmax_locale(routeActuelle, vmax_par_voiture, p_ralentis):
     vmax_local = [20 for i in range(len(routeActuelle))]
-    for i in range(10,20):
-        vmax_local[i] = 1 #en considerant que la route fasse une taille supérieure a 20
+    # for i in range(10,20):
+    #     vmax_local[i] = 1 #en considerant que la route fasse une taille supérieure a 20
+    for i in range(10,30):
+        vmax_local[i] = 2 #maintenant on met une vitesse max a 3 sur une zone plus longue
+
     routeActuelle_new = routeActuelle.copy()
     n = len(routeActuelle)
 
@@ -174,7 +177,7 @@ if __name__ == "__main__":
     plt.imshow(img.T, aspect='auto', cmap='gray_r', origin='lower')
     plt.xlabel("Temps")
     plt.ylabel("Position sur la route")
-    plt.title("Évolution trafic avec limitation locale (cases 10–19)")
+    plt.title("Évolution trafic avec limitation locale (cases 10–40)")
     plt.show()
 
     ##version sans lim de vitesse
@@ -182,7 +185,7 @@ if __name__ == "__main__":
 
     traj = [route]
 
-    for t in range(100):
+    for t in range(1000):
         route = transition(route, vmax_par_voiture, 0.3)
         traj.append(route)
 
