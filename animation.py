@@ -15,7 +15,8 @@ route_5km_0 = repartition_Unif_voitures(route_5km_0, nb_Voitures)
 vmax = 5
 p_ralentis = 0.1
 duree = 300
-Ch = CM_Route(route_5km_0, duree, vmax, p_ralentis)
+modele = ModeleSimple(vmax, p_ralentis)
+Ch = modele.trajectoire(route_5km_0, duree)
 
 # interface avec route circulaire
 ROAD_COLOR = "#404040"
