@@ -105,7 +105,7 @@ for id_voiture in range(1, nb_voitures + 1):
 def transition_vmax_locale(routeActuelle, vmax_par_voiture, p_ralentis):
     vmax_local = [20 for i in range(len(routeActuelle))]
     for i in range(10,20):
-        vmax_local[i] = 5 #en considerant que la route fasse une taille supérieure a 20
+        vmax_local[i] = 1 #en considerant que la route fasse une taille supérieure a 20
     routeActuelle_new = routeActuelle.copy()
     n = len(routeActuelle)
 
