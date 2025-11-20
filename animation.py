@@ -2,32 +2,21 @@ import tkinter as tk
 import time
 import math
 import threading
-import numpy as np 
 
-from Trafic import *
+from trafic import *
 
 
-# parametres (je les ai modifié pour une représentation visuelle) 
+# parametres (je les ai modifié pour une représentation visuelle)
 
 route_5km_0 = [0 for _ in range(80)]
 nb_Voitures = 30
 route_5km_0 = repartition_Unif_voitures(route_5km_0, nb_Voitures)
 
-# Création des vitesses hétérogènes
-vmax_par_voiture = np.zeros(nb_Voitures + 1, dtype=int)
-
-for id_voiture in range(1, nb_Voitures + 1):
-    # Exemple : camions, voitures, motos mais on peut ajuster comme on veut et rajouter d'autres types
-    if id_voiture % 5 == 0:
-        vmax_par_voiture[id_voiture] = 2   # camion lent
-    elif id_voiture % 3 == 0:
-        vmax_par_voiture[id_voiture] = 7   # moto rapide
-    else:
-        vmax_par_voiture[id_voiture] = 5   # voiture normale
-
+vmax = 5
 p_ralentis = 0.1
 duree = 300
-Ch = CM_Route(route_5km_0, duree, vmax_par_voiture, p_ralentis)
+modele = ModeleSimple(vmax, p_ralentis)
+Ch = modele.trajectoire(route_5km_0, duree)
 
 # interface avec route circulaire
 ROAD_COLOR = "#404040"
@@ -63,9 +52,12 @@ status_label.pack(pady=10)
 
 def afficher_route(route):
     canvas.delete("all")
+
+    # Dessiner la route circulaire
     canvas.create_oval(PADDING, PADDING, width - PADDING, height - PADDING,
                        outline="gray60", width=30)
 
+    # Dessiner les voitures
     for i, v in enumerate(route):
         if v != 0:
             angle = 2 * math.pi * i / n
@@ -75,17 +67,7 @@ def afficher_route(route):
             car_size = 10
             canvas.create_oval(cx - car_size, cy - car_size, cx + car_size, cy + car_size,
                                fill=CAR_COLOR, outline="black")
-
-            vmax_v = vmax_par_voiture[v]
-            if vmax_v <= 2:
-                label = "C"   # camion
-            elif vmax_v >= 7:
-                label = "M"   # moto
-            else:
-                label = "V"   # voiture
-
-            canvas.create_text(cx, cy, text=f"{label}{v}", fill=TEXT_COLOR, font=("Arial", 8, "bold"))
-
+            canvas.create_text(cx, cy, text=str(v), fill=TEXT_COLOR, font=("Arial", 8, "bold"))
     root.update()
 
 
@@ -102,7 +84,7 @@ def animation():
         afficher_route(etat)
         status_label.config(text=f"Temps : {t + 1} s / {duree} s")
         time.sleep(speed_var.get())
-    status_label.config(text="Simulation terminée V")
+    status_label.config(text="Simulation terminée ✅")
 
 def start_animation():
     thread = threading.Thread(target=animation, daemon=True)
@@ -111,7 +93,7 @@ def start_animation():
 def stop_animation():
     global stop_flag
     stop_flag = True
-    status_label.config(text="Simulation arrêtée X")
+    status_label.config(text="Simulation arrêtée ⛔")
 
 # Boutons
 button_frame = tk.Frame(root, bg=BG_COLOR)
