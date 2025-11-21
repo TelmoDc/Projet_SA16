@@ -1,5 +1,12 @@
 import numpy as np
 
+
+##############################################
+#     Variable utiles
+##############################################
+
+accidents_blocking =  {}
+DUREE_BLOCAGE = 2700 # car en moyenne selon internet entre 20 min et 2h donc j'ai pris 45 min : 45*60 sec = 2700 sec
 ###############################################
 #   FONCTIONS UTILES
 ###############################################
@@ -74,7 +81,8 @@ def transition(route, vmax, v, p):
     vmax : idem
     p : probabilité de ralentissement aléatoire
     """
-
+    base_rate = 1e-4  # taux de base d'accident par pas de temps
+    
     nlanes, n = route.shape
     route_new = route.copy()
 
@@ -86,7 +94,7 @@ def transition(route, vmax, v, p):
     for lane in range(nlanes):
         for pos in range(n):
             car = route[lane][pos]
-            if car != 0:
+            if car > 0:                             # accident ne bouge pas donc >
                 demandes[car] = decide_lane_change(route, vmax, v[car], lane, pos)
 
     ############################
@@ -98,7 +106,7 @@ def transition(route, vmax, v, p):
     for lane in range(nlanes):
         for pos in range(n):
             car = route[lane][pos]
-            if car == 0:
+            if car == 0 or car == -1:
                 continue
 
             move = demandes[car]
@@ -129,7 +137,7 @@ def transition(route, vmax, v, p):
     for lane in range(nlanes):
         for pos in range(n):
             car = route[lane][pos]
-            if car != 0:
+            if car != 0 and car!=-1:
                 gap = gap_ahead(route, lane, pos)
                 v[car] = min(v[car], gap)
 
@@ -137,6 +145,37 @@ def transition(route, vmax, v, p):
     for car in v:
         if np.random.rand() < p and v[car] > 0:
             v[car] -= 1
+            
+            
+            
+     ############################
+    # Étape 2.5 : Gestion des accidents
+    ############################
+    cars_to_remove = []
+    for lane in range(nlanes):
+        for pos in range(n):
+            car = route[lane][pos]
+            if car == 0 or car ==-1:
+                continue
+
+            gap = gap_ahead(route, lane, pos)
+            move = demandes[car]
+            vcar = v[car]
+
+            accident_prob = base_rate * (1 + 0.1 * vcar) * (1 / (gap + 1))
+            if move != 0:
+                accident_prob *= 2  # changement de voie augmente le risque
+
+            if np.random.rand() < accident_prob: #    -------------------------- >   si l'on ne veux pas prendre en compte les accident mettre 0
+                # Accident : suppression de la voiture
+                cars_to_remove.append((lane, pos, car))
+
+    for lane, pos, car in cars_to_remove:
+        print(f"Accident voiture {car} à la position {pos} voie {lane}")
+        route[lane][pos] = -1
+        v.pop(car)
+        accidents_blocking[(lane, pos)] = DUREE_BLOCAGE
+
 
     ############################
     # Étape 3 : déplacement simultané
@@ -147,10 +186,21 @@ def transition(route, vmax, v, p):
     for lane in range(nlanes):
         for pos in range(n):
             car = route[lane][pos]
-            if car != 0:
-                new_pos = (pos + v[car]) % n
-                route_new[lane][new_pos] = car
-
+            if car != 0:  
+                if car != -1 :     #    Important de gerer les accident aussi
+                    new_pos = (pos + v[car]) % n
+                    route_new[lane][new_pos] = car
+                else :
+                    route_new[lane][pos] = car
+    ###############################################
+    #    Gestion du temps de blockage de l'accident
+    ########################################
+    for (lane, pos) in list(accidents_blocking.keys()):
+        accidents_blocking[(lane, pos)] -= 1
+        if accidents_blocking[(lane, pos)] <= 0:
+            # Fin du blocage, libération de la case
+            route[lane][pos] = 0
+            del accidents_blocking[(lane, pos)]
     return route_new
 
 # Initialisation
@@ -158,9 +208,9 @@ n = 20
 nlanes = 2
 route = np.zeros((nlanes, n), dtype=int)
 
-# Mettons voiture 1 en voie 0 position 2, voiture 2 en voie 1 position 5
 route[0, 12] = 1
 route[0, 13] = 2
+route[0, 17] = -1    # test si accident yes it works good
 
 # Vitesse initiale et vitesse max
 v = {1: 2, 2: 0}
