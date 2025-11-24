@@ -25,16 +25,35 @@ def route_equidistance(taille, nb_voitures):
     return route
 
 
+def config_equidistance(taille, nb_voitures):
+    route = route_equidistance(taille, nb_voitures)
+    vitesses = {i: 0 for i in range(1, nb_voitures+1)}
+    return route, vitesses
+
+
+def ecart_devant(route, i):
+    n = route.shape[0]
+    d = 1
+    while d < n:
+        if route[(i+d)%n] > 0:
+            return d-1
+        d += 1
+    return n-1
+
+
 class Modele(ABC):
     @abstractmethod
-    def transition(self, route):
+    def transition(self, route, vitesses):
         pass
 
-    def trajectoire(self, route0, n):
-        chaine = [route0]
+    def trajectoire(self, route0, vitesses0, n):
+        chaine_route = [route0]
+        chaine_vitesses = [vitesses0]
         for _ in range(n):
-            chaine.append(self.transition(chaine[-1]))
-        return np.array(chaine)
+            route, vitesses = self.transition(chaine_route[-1], chaine_vitesses[-1])
+            chaine_route.append(route)
+            chaine_vitesses.append(vitesses)
+        return chaine_route, chaine_vitesses
 
 
 class ModeleSimple(Modele):
@@ -42,38 +61,34 @@ class ModeleSimple(Modele):
         self.vmax = vmax
         self.p = p
     
-    def transition(self, route):
-        route_new = route.copy()
-        n = len(route)
+    def transition(self, route, vitesses):
+        n = route.shape[0]
+        route_new = route_vide(n)
+        vitesses_new = {}
 
-        voituresDejaBougee = {0}
+        # accélération
+        for voiture in vitesses:
+            vitesses_new[voiture] = min(vitesses[voiture]+1, self.vmax)
+        
+        # freinage
         for i in range(n):
-            if (route[i] not in voituresDejaBougee):
-                voiture_act = route_new[i]
-                pos_voiture_act = i
-
-                # 1 avance vmax au plus
-                avance = 0
-                for j in range(self.vmax):
-                    if (route[(i + j + 1) % n] == 0):
-                        avance += 1
-                        route_new[(i + j) % n] = 0
-                        route_new[(i + j + 1) % n] = voiture_act
-                        pos_voiture_act = (i + j + 1) % n
-                    else:
-                        break
-                
-                # 2 ralatentit avec proba p_ralentis si possible
-                if avance > 0:
-                    u = np.random.rand()
-                    if (u < self.p):
-                        route_new[(pos_voiture_act - 1) % n] = voiture_act
-                        route_new[(pos_voiture_act) % n] = 0
-
-                # 3 Ajout de la voiture dans la liste de celle qui ont deja avancÃ©es
-                voituresDejaBougee.add(voiture_act)
-
-        return np.array(route_new)
+            voiture = route[i]
+            if voiture > 0:
+                ecart = ecart_devant(route, i)
+                vitesses_new[voiture] = min(vitesses_new[voiture], ecart)
+        
+        # ralentissement aléatoire
+        for voiture in vitesses:
+            if np.random.rand() < self.p and vitesses_new[voiture] > 0:
+                vitesses_new[voiture] -= 1
+        
+        # déplacement des voitures
+        for i in range(n):
+            voiture = route[i]
+            if voiture > 0:
+                route_new[(i+vitesses_new[voiture])%n] = voiture
+        
+        return route_new, vitesses_new
 
 
 class ModeleDiffVmax(Modele):
@@ -81,37 +96,31 @@ class ModeleDiffVmax(Modele):
         self.vmax_par_voiture = vmax_par_voiture
         self.p = p
     
-    def transition(self, route):
-        route_new = route.copy()
-        n = len(route)
+    def transition(self, route, vitesses):
+        n = route.shape[0]
+        route_new = route_vide(n)
+        vitesses_new = {}
 
-        voituresDejaBougee = {0}
+        # accélération
+        for voiture in vitesses:
+            vitesses_new[voiture] = min(vitesses[voiture]+1, self.vmax_par_voiture[voiture])
+        
+        # freinage
         for i in range(n):
-            if (route[i] not in voituresDejaBougee and route[i] != 0):
-                voiture_act = route_new[i]
-                pos_voiture_act = i
-                #chaque voiture a sa vitesse max    
-                vmax_i = self.vmax_par_voiture[voiture_act]
-
-                # 1 avance vmax au plus
-                avance = 0
-                for j in range(vmax_i):
-                    if (route[(i + j + 1) % n] == 0):
-                        avance += 1
-                        route_new[(i + j) % n] = 0
-                        route_new[(i + j + 1) % n] = voiture_act
-                        pos_voiture_act = (i + j + 1) % n
-                    else:
-                        break
-                
-                # 2 ralatentit avec proba p_ralentis si possible
-                if avance > 0:
-                    u = np.random.rand()
-                    if (u < self.p):
-                        route_new[(pos_voiture_act - 1) % n] = voiture_act
-                        route_new[(pos_voiture_act) % n] = 0
-
-                # 3 Ajout de la voiture dans la liste de celle qui ont deja avances
-                voituresDejaBougee.add(voiture_act)
-
-        return np.array(route_new)
+            voiture = route[i]
+            if voiture > 0:
+                ecart = ecart_devant(route, i)
+                vitesses_new[voiture] = min(vitesses_new[voiture], ecart)
+        
+        # ralentissement aléatoire
+        for voiture in vitesses:
+            if np.random.rand() < self.p and vitesses_new[voiture] > 0:
+                vitesses_new[voiture] -= 1
+        
+        # déplacement des voitures
+        for i in range(n):
+            voiture = route[i]
+            if voiture > 0:
+                route_new[(i+vitesses_new[voiture])%n] = voiture
+        
+        return route_new, vitesses_new
