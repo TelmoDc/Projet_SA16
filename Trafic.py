@@ -106,7 +106,7 @@ def transition_vmax_locale(routeActuelle, vmax_par_voiture, p_ralentis):
     vmax_local = [20 for i in range(len(routeActuelle))]
     # for i in range(10,20):
     #     vmax_local[i] = 1 #en considerant que la route fasse une taille supérieure a 20
-    for i in range(10,30):
+    for i in range(10,40):
         vmax_local[i] = 2 #maintenant on met une vitesse max a 3 sur une zone plus longue
 
     routeActuelle_new = routeActuelle.copy()
@@ -170,32 +170,32 @@ if __name__ == "__main__":
         traj.append(route)
 
     traj = np.array(traj)
-    img = (traj > 0).astype(int)  # 0 = vide, 1 = voiture
+    img = (traj > 0).astype(int)
 
     # ----- AFFICHAGE -----
     plt.figure(figsize=(10, 6))
-    plt.imshow(img.T, aspect='auto', cmap='gray_r', origin='lower')
-    plt.xlabel("Temps")
-    plt.ylabel("Position sur la route")
-    plt.title("Évolution trafic avec limitation locale (cases 10–40)")
+    plt.imshow(img, cmap='gray_r')
+    plt.xlabel("Position sur la route")
+    plt.ylabel("temps")
+    plt.title("Évolution trafic avec limitation locale (cases 10–40) mais v=2")
     plt.show()
 
     ##version sans lim de vitesse
-    route = route_unif(L, nb_voitures)
-
-    traj = [route]
-
-    for t in range(1000):
-        route = transition(route, vmax_par_voiture, 0.3)
-        traj.append(route)
-
-    traj = np.array(traj)
-    img = (traj > 0).astype(int)  # 0 = vide, 1 = voiture
-
-    # ----- AFFICHAGE -----
-    plt.figure(figsize=(10, 6))
-    plt.imshow(img.T, aspect='auto', cmap='gray_r', origin='lower')
-    plt.xlabel("Temps")
-    plt.ylabel("Position sur la route")
-    plt.title("Évolution trafic avec limitation locale (cases 10–19)")
-    plt.show()
+    # route = route_unif(L, nb_voitures)
+    #
+    # traj = [route]
+    #
+    # for t in range(1000):
+    #     route = transition(route, vmax_par_voiture, 0.3)
+    #     traj.append(route)
+    #
+    # traj = np.array(traj)
+    # img = (traj > 0).astype(int)  # 0 = vide, 1 = voiture
+    #
+    # # ----- AFFICHAGE -----
+    # plt.figure(figsize=(10, 6))
+    # plt.imshow(img.T, aspect='auto', cmap='gray_r', origin='lower')
+    # plt.xlabel("Temps")
+    # plt.ylabel("Position sur la route")
+    # plt.title("Évolution trafic avec limitation locale (cases 10–19)")
+    # plt.show()
