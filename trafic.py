@@ -30,6 +30,13 @@ def config_equidistance(taille, nb_voitures):
     vitesses = {i: 0 for i in range(1, nb_voitures+1)}
     return route, vitesses
 
+def config_equidistance_plusieurs_voies(taille, nb_voies, nb_voitures):
+    route = route_equidistance(taille, nb_voitures)
+    for _ in range(nb_voies-1):
+        route = np.vstack([route, np.zeros(taille)])
+    vitesses = {i: 0 for i in range(1, nb_voitures+1)}
+    return route, vitesses
+
 
 def ecart_devant(route, i):
     n = route.shape[0]
