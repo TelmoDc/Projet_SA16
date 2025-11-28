@@ -91,9 +91,47 @@ for id_voiture in range(1, nb_voitures + 1):
         vmax_par_voiture[id_voiture] = 8
 
 
+# def calculer_embouteillage(route):
+#     route = np.array(route)
+#     L = float(len(route))
+#
+#     voitures = np.where(route != 0)[0]
+#
+#     if len(voitures) <= 1:
+#         return 0.0
+#
+#     emb = 0.0
+#     for i in range(len(voitures)):
+#         pos1 = voitures[i]
+#         pos2 = voitures[(i + 1) % len(voitures)]
+#         d = (pos2 - pos1) % L  # distance en prenant en compte la circularité
+#
+#         if d > 0:  # pour éviter division par 0
+#             emb += 1 / (d * d)
+#
+#     return emb / L
 
+def distance_devant(route, i):
+    n = route.shape[0]
+    d = 1
+    while d < n:
+        if route[(i+d)%n] > 0:
+            break
+        d += 1
+    return d
 
-
+def calculer_embouteillage(route):
+    n = route.shape[0]
+    somme = 0
+    i = 0
+    while i < n:
+        if route[i] > 0:
+            d = distance_devant(route, i)
+            somme += 1/d**2
+            i += d
+        else:
+            i += 1
+    return 1/n * somme
 
 
 
@@ -102,13 +140,12 @@ for id_voiture in range(1, nb_voitures + 1):
 
 # limitation de vitesse
 
-def transition_vmax_locale(routeActuelle, vmax_par_voiture, p_ralentis):
-    vmax_local = [20 for i in range(len(routeActuelle))]
+def transition_vmax_locale(routeActuelle, vmax_par_voiture,vmaxloc, p_ralentis):
+    vmax_local = [200 for i in range(len(routeActuelle))]
     # for i in range(10,20):
     #     vmax_local[i] = 1 #en considerant que la route fasse une taille supérieure a 20
-    for i in range(10,40):
-        vmax_local[i] = 2 #maintenant on met une vitesse max a 3 sur une zone plus longue
-
+    for i in range(10,20):
+        vmax_local[i] = 2
     routeActuelle_new = routeActuelle.copy()
     n = len(routeActuelle)
 
@@ -156,28 +193,32 @@ if __name__ == "__main__":
     # exemple de vitesses
     vmax_par_voiture = np.zeros(nb_voitures + 1, dtype=int)
     for idv in range(1, nb_voitures + 1):
-        if idv % 5 == 0: vmax_par_voiture[idv] = 2
-        elif idv % 3 == 0: vmax_par_voiture[idv] = 7
+        if idv % 5 == 0: vmax_par_voiture[idv] = 5
+        elif idv % 3 == 0: vmax_par_voiture[idv] = 5
         else: vmax_par_voiture[idv] = 5
 
     # simulateur avec accidents
     #print(traj)
 
     traj = [route]
-
     for t in range(100):
-        route = transition_vmax_locale(route, vmax_par_voiture, 0.3)
+        route = transition_vmax_locale(route, vmax_par_voiture,1, 0.3)
         traj.append(route)
 
     traj = np.array(traj)
     img = (traj > 0).astype(int)
+    print(calculer_embouteillage(traj[-1]))
+
+
+
+
 
     # ----- AFFICHAGE -----
     plt.figure(figsize=(10, 6))
     plt.imshow(img, cmap='gray_r')
     plt.xlabel("Position sur la route")
     plt.ylabel("temps")
-    plt.title("Évolution trafic avec limitation locale (cases 10–40) mais v=2")
+    plt.title("v = 1")
     plt.show()
 
     ##version sans lim de vitesse
